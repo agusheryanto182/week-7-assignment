@@ -28,5 +28,26 @@ app.makeFile = () => {
     })
 }
 
+app.readFolder = () => {
+    let result = []
+    rl.question("Masukan Nama Folder : ", (folderName) => {
+        fs.readdir(__dirname + `/${folderName}`, (err, files) => {
+            if (err) throw err;
+            files.forEach(file => {
+                let stats = fs.statSync(__dirname + `/${folderName}/${file}`)
+                result.push({
+                    namaFile: file,
+                    extensi: file.split(".")[1],
+                    jenisFile: helper.checkFileType(file.split(".")[1]),
+                    tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
+                    ukuranFile: helper.convertFileSize(stats.size)
+                })
+            });
+            console.log(result);
+        })
+        rl.close()
+    })
+}
+
 
 module.exports = app
