@@ -12,9 +12,16 @@ const app = {}
 
 app.makeFolder = () => {
     rl.question("Masukan Nama Folder : ", (folderName) => {
+        // check folder
+        if (fs.existsSync(__dirname + `/${folderName}`)) {
+            console.log("Folder already exists");
+            rl.close();
+            return;
+        }
+
+        // create folder
         fs.mkdir(__dirname + `/${folderName}`, () => {
             console.log("success created new folder");
-
         })
         rl.close()
     })
