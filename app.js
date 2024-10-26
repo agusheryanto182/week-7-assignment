@@ -1,6 +1,7 @@
 const fs = require("node:fs")
 const readline = require('node:readline');
-const helper = require("./helper")
+const helper = require("./helper");
+const path = require("node:path");
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -20,21 +21,59 @@ app.makeFolder = () => {
 }
 
 app.makeFile = () => {
-    rl.question("Masukan Nama Folder : ", (folderName) => {
-        rl.question("Masukan Nama File : ", (fileName) => {
-            rl.question("Masukan Extensi File : ", (ext) => {
-                const filePath = __dirname + `/${folderName}/${fileName}.${ext}`
-                fs.writeFile(filePath, "", (err) => {
-                    if (err) {
-                        console.log(`Error: ${err.message}`)
-                    } else {
+    // show the list of folders without file and hidden file
+    fs.readdir(__dirname, (err, files) => {
+        if (err) {
+            console.error("Error reading directory:", err);
+            rl.close();
+            return;
+        }
+
+        // filter the list of folders
+        const folders = files.filter(file => {
+            try {
+                const fileStat = fs.lstatSync(path.join(__dirname, file));
+                return fileStat.isDirectory() && !file.startsWith('.');
+            } catch (e) {
+                console.error("Error reading file stats:", e);
+                return false;
+            }
+        });
+        console.log(folders);
+        console.log("")
+
+        rl.question("Masukan Nama Folder : ", (folderName) => {
+            rl.question("Masukan Nama File : ", (fileName) => {
+                rl.question("Masukan Extensi File : ", (ext) => {
+
+                    // validate user input
+                    if (!folderName || !fileName || !ext) {
+                        console.log("Invalid input");
+                        rl.close();
+                        return;
+                    }
+
+                    // validate folder
+                    const dirPath = path.join(__dirname, folderName);
+                    if (!fs.existsSync(dirPath)) {
+                        console.log("Folder doesn't exist");
+                        rl.close();
+                        return;
+                    }
+
+                    const filePath = path.join(dirPath, `${fileName}.${ext}`);
+                    try {
+                        fs.writeFileSync(filePath, "");
                         console.log(`success created new file ${filePath}`)
+                    } catch (err) {
+                        console.log(`Error: ${err.message}`)
+                    } finally {
+                        rl.close()
                     }
                 })
-                rl.close()
             })
         })
-    })
+    });
 }
 
 app.readFolder = () => {
