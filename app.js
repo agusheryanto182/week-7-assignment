@@ -30,7 +30,7 @@ app.makeFolder = () => {
 app.makeFile = async () => {
     try {
         // show the list of folders without file and hidden file
-        const folders = await helper.showListOfFolders(__dirname);
+        const folders = await helper.showListOfFoldersOrFile(__dirname, true);
         console.log("list of folders : ", folders);
         console.log("")
 
@@ -74,7 +74,7 @@ app.makeFile = async () => {
 app.readFolder = async () => {
     try {
         // show the list of folders without file and hidden file
-        const folders = await helper.showListOfFolders(__dirname);
+        const folders = await helper.showListOfFoldersOrFile(__dirname, true);
         console.log("list of folders : ", folders);
         console.log("")
 
@@ -105,7 +105,70 @@ app.readFolder = async () => {
     }
 }
 
-app.readFile = () => { }
+app.readFile = async () => {
+    try {
+        // show the list of folders without file and hidden file
+        const folders = await helper.showListOfFoldersOrFile(__dirname, false);
+        console.log("list of files : ", folders);
+        console.log("")
+
+        rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
+            if (answer.toLowerCase() === "y") {
+                rl.question("Masukan Nama Folder : ", (folderName) => {
+                    if (!fs.existsSync(__dirname + `/${folderName}`)) {
+                        console.log("Folder doesn't exist");
+                        rl.close();
+                        return
+                    }
+
+                    const files = fs.readdirSync(__dirname + `/${folderName}`);
+                    console.log("")
+                    console.log('List of files:');
+                    files.forEach(file => {
+                        console.log(file);
+                    });
+                    console.log("")
+
+
+                    rl.question("Masukan Nama File : ", (fileName) => {
+                        // check file
+                        if (!fs.existsSync(__dirname + `/${folderName}/${fileName}`)) {
+                            console.log("File doesn't exist");
+                            rl.close();
+                            return
+                        }
+
+                        fs.readFile(__dirname + `/${folderName}/${fileName}`, 'utf8', (err, data) => {
+                            if (err) throw err;
+
+                            console.log(fileName.split(".")[1]);
+                            console.log(`Isi dari file ${fileName}`);
+                            console.log(data);
+                            rl.close()
+                            return
+                        })
+                    })
+                })
+            } else {
+                rl.question("Masukan Nama File : ", (fileName) => {
+                    // check file
+                    fs.readFile(__dirname + `/${fileName}`, 'utf8', (err, data) => {
+                        if (err) throw err;
+                        console.log(fileName.split(".")[1]);
+                        console.log(`Isi dari file ${fileName}`);
+                        console.log(data);
+                        rl.close()
+                        return
+                    })
+                })
+            }
+        })
+    } catch (err) {
+        console.error("Failed to get folders:", err);
+        rl.close();
+        return
+    }
+}
 
 
 module.exports = app

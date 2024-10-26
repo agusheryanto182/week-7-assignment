@@ -6,7 +6,7 @@ const helper = {}
 
 helper.convertFileSize = (bytes) => {
     if (bytes === 0) {
-        return "n/a";
+        return "0bytes";
     }
     if (bytes > 1048576) {
         return (bytes / 1048576).toFixed(2) + "mb";
@@ -24,7 +24,7 @@ helper.checkFileType = (ext) => {
         return "text"
     }
 }
-helper.showListOfFolders = (dirPath) => {
+helper.showListOfFoldersOrFile = (dirPath, isOnlyFolder) => {
     return new Promise((resolve, reject) => {
         fs.readdir(dirPath, (err, files) => {
             if (err) {
@@ -32,18 +32,23 @@ helper.showListOfFolders = (dirPath) => {
                 return reject(err);
             }
 
-            // Filter the list of folders
-            const folders = files.filter(file => {
-                try {
-                    const fileStat = fs.lstatSync(path.join(dirPath, file));
-                    return fileStat.isDirectory() && !file.startsWith('.');
-                } catch (e) {
-                    console.error("Error reading file stats:", e);
-                    return false;
-                }
-            });
-
-            resolve(folders);
+            if (isOnlyFolder) {
+                // Filter the list of folders
+                const folders = files.filter(file => {
+                    try {
+                        const fileStat = fs.lstatSync(path.join(dirPath, file));
+                        return fileStat.isDirectory() && !file.startsWith('.');
+                    } catch (e) {
+                        console.error("Error reading file stats:", e);
+                        return false;
+                    }
+                });
+                resolve(folders);
+            } else {
+                // show all files
+                const allFiles = files.filter(file => !file.startsWith('.'));
+                resolve(allFiles);
+            }
         });
     });
 };
