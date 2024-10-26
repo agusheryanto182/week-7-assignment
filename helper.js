@@ -53,6 +53,17 @@ helper.showListOfFoldersOrFile = (dirPath, isOnlyFolder) => {
     });
 };
 
+helper.showFolders = (dirPath) => {
+    return fs.readdirSync(dirPath)
+        .filter(file => fs.statSync(path.join(dirPath, file)).isDirectory())
+        .filter(file => !file.startsWith('.'));
+}
+
+helper.showAllFiles = (dirPath) => {
+    return fs.readdirSync(dirPath)
+        .filter(file => !file.startsWith('.'));
+}
+
 helper.updateCurrentPath = (currPath, newDir) => {
     return path.join(currPath, newDir)
 }

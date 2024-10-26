@@ -2,6 +2,7 @@ const fs = require("node:fs")
 const readline = require('node:readline');
 const helper = require("./helper");
 const path = require("node:path");
+const { validateHeaderName } = require("node:http");
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -10,30 +11,13 @@ const rl = readline.createInterface({
 
 const app = {}
 
-app.makeFolder = () => {
-    rl.question("Masukan Nama Folder : ", (folderName) => {
-        // check folder
-        if (fs.existsSync(__dirname + `/${folderName}`)) {
-            console.log("Folder already exists");
-            rl.close();
-            return;
-        }
-
-        // create folder
-        fs.mkdir(__dirname + `/${folderName}`, () => {
-            console.log("success created new folder");
-        })
-        rl.close()
-    })
-}
-
-app.makeFile = async () => {
+app.makeFolder = async () => {
     try {
-        const folders = await helper.showListOfFoldersOrFile(__dirname, true);
+        let currDir = __dirname;
+
+        const folders = await helper.showListOfFoldersOrFile(currDir, true);
         console.log("List of folders:", folders);
         console.log("");
-
-        let currDir = __dirname;
 
         const askToEnterFolder = () => {
             rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
@@ -48,16 +32,79 @@ app.makeFile = async () => {
                         }
 
                         console.log("Direktori saat ini:", currDir);
+
+                        const currFolders = helper.showFolders(currDir);
+                        console.log("List of folders:", currFolders);
                         askToEnterFolder();
                     });
                 } else {
-                    askToCreateFile();
+                    createFolder();
                 }
             });
         };
 
-        const askToCreateFile = () => {
-            rl.question("Masukan Nama File: ", (fileName) => {
+        const createFolder = () => {
+            rl.question("Masukan Nama Folder yang akan Dibuat: ", (folderName) => {
+                // check folder
+                if (fs.existsSync(currDir + `/${folderName}`)) {
+                    console.log("Folder already exists");
+                    rl.close();
+                    return;
+                }
+
+                // create folder
+                fs.mkdir(currDir + `/${folderName}`, () => {
+                    console.log("success created new folder");
+                })
+                rl.close()
+            })
+        }
+
+        askToEnterFolder();
+    } catch (err) {
+        console.error("Failed to get folders:", err);
+        rl.close();
+        return
+    }
+}
+
+app.makeFile = async () => {
+    try {
+        let currDir = __dirname;
+
+        const folders = await helper.showListOfFoldersOrFile(currDir, true);
+        console.log("List of folders:", folders);
+        console.log("");
+
+        const askToEnterFolder = () => {
+            rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
+                if (answer.toLowerCase() === "y") {
+                    rl.question("Masukan Nama Folder: ", (folderName) => {
+                        currDir = helper.updateCurrentPath(currDir, folderName);
+
+                        if (!fs.existsSync(currDir)) {
+                            console.log("Folder doesn't exist");
+                            rl.close();
+                            return;
+                        }
+
+                        console.log("Direktori saat ini:", currDir);
+
+                        const currFolders = helper.showFolders(currDir);
+                        console.log("List of folders:", currFolders);
+                        askToEnterFolder();
+                    });
+                } else {
+                    createFile();
+                }
+            });
+        };
+
+        const createFile = () => {
+            const files = helper.showAllFiles(currDir)
+            console.log("List of files:", files);
+
+            rl.question("Masukan Nama File yang akan Dibuat: ", (fileName) => {
                 rl.question("Masukan Extensi File: ", (ext) => {
                     if (!fileName || !ext) {
                         console.log("Invalid input");
@@ -91,96 +138,128 @@ app.makeFile = async () => {
 
 app.readFolder = async () => {
     try {
-        // show the list of folders without file and hidden file
-        const folders = await helper.showListOfFoldersOrFile(__dirname, true);
-        console.log("list of folders : ", folders);
-        console.log("")
+        let currDir = __dirname;
 
-        let result = []
-        rl.question("Masukan Nama Folder yang akan dibaca: ", (folderName) => {
-            fs.readdir(__dirname + `/${folderName}`, (err, files) => {
-                if (err) throw err;
-                files.forEach(file => {
-                    let stats = fs.statSync(__dirname + `/${folderName}/${file}`)
-                    result.push({
-                        namaFile: file,
-                        extensi: file.split(".")[1],
-                        jenisFile: helper.checkFileType(file.split(".")[1]),
-                        tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
-                        ukuranFile: helper.convertFileSize(stats.size)
-                    })
-                });
+        const folders = await helper.showListOfFoldersOrFile(currDir, true);
+        console.log("List of folders:", folders);
+        console.log("");
 
-                // sort by date created
-                result.sort((a, b) => a.tanggalDibuat - b.tanggalDibuat)
-                console.log(result);
+        const askToEnterFolder = () => {
+            rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
+                if (answer.toLowerCase() === "y") {
+                    rl.question("Masukan Nama Folder: ", (folderName) => {
+                        currDir = helper.updateCurrentPath(currDir, folderName);
+
+                        if (!fs.existsSync(currDir)) {
+                            console.log("Folder doesn't exist");
+                            rl.close();
+                            return;
+                        }
+
+                        console.log("Direktori saat ini:", currDir);
+
+                        const currFolders = helper.showFolders(currDir);
+                        console.log("List of folders:", currFolders);
+                        askToEnterFolder();
+                    });
+                } else {
+                    readFolder();
+                }
+            });
+        };
+
+        const readFolder = () => {
+            let result = []
+            rl.question("Masukan Nama Folder yang akan dibaca: ", (folderName) => {
+                fs.readdir(currDir + `/${folderName}`, (err, files) => {
+                    if (err) throw err;
+                    files.forEach(file => {
+                        let stats = fs.statSync(currDir + `/${folderName}/${file}`)
+                        result.push({
+                            namaFile: file,
+                            extensi: file.split(".")[1],
+                            jenisFile: helper.checkFileType(file.split(".")[1]),
+                            tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
+                            ukuranFile: helper.convertFileSize(stats.size)
+                        })
+                    });
+
+                    // sort by date created
+                    result.sort((a, b) => a.tanggalDibuat - b.tanggalDibuat)
+                    console.log(result);
+                    rl.close()
+                    return;
+                })
             })
-            rl.close()
-        })
+        }
+
+        askToEnterFolder();
     } catch (err) {
         console.error("Failed to get folders:", err);
         rl.close();
+        return;
     }
 }
 
 app.readFile = async () => {
     try {
-        // show the list of folders without file and hidden file
-        const folders = await helper.showListOfFoldersOrFile(__dirname, false);
-        console.log("list of files : ", folders);
-        console.log("")
+        let currDir = __dirname;
 
-        rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
-            if (answer.toLowerCase() === "y") {
-                rl.question("Masukan Nama Folder : ", (folderName) => {
-                    if (!fs.existsSync(__dirname + `/${folderName}`)) {
-                        console.log("Folder doesn't exist");
-                        rl.close();
-                        return
-                    }
+        const folders = await helper.showListOfFoldersOrFile(currDir, true);
+        console.log("List of folders:", folders);
+        console.log("");
 
-                    const files = fs.readdirSync(__dirname + `/${folderName}`);
-                    console.log("")
-                    console.log('List of files:');
-                    files.forEach(file => {
-                        console.log(file);
-                    });
-                    console.log("")
+        const askToEnterFolder = () => {
+            rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
+                if (answer.toLowerCase() === "y") {
+                    rl.question("Masukan Nama Folder: ", (folderName) => {
+                        currDir = helper.updateCurrentPath(currDir, folderName);
 
-
-                    rl.question("Masukan Nama File : ", (fileName) => {
-                        // check file
-                        if (!fs.existsSync(__dirname + `/${folderName}/${fileName}`)) {
-                            console.log("File doesn't exist");
+                        if (!fs.existsSync(currDir)) {
+                            console.log("Folder doesn't exist");
                             rl.close();
-                            return
+                            return;
                         }
 
-                        fs.readFile(__dirname + `/${folderName}/${fileName}`, 'utf8', (err, data) => {
-                            if (err) throw err;
+                        console.log("Direktori saat ini:", currDir);
 
-                            console.log(fileName.split(".")[1]);
-                            console.log(`Isi dari file ${fileName}`);
-                            console.log(data);
-                            rl.close()
-                            return
-                        })
-                    })
+                        const currFolders = helper.showFolders(currDir);
+                        console.log("List of folders:", currFolders);
+                        askToEnterFolder();
+                    });
+                } else {
+                    readFile();
+                }
+            });
+        };
+
+        const readFile = () => {
+            const files = helper.showAllFiles(currDir)
+            console.log("List of files:", files);
+
+            rl.question("Masukan Nama File yang akan dibaca : ", (fileName) => {
+                const currPath = helper.updateCurrentPath(currDir, fileName)
+                // check file
+                if (!fs.existsSync(currPath)) {
+                    console.log("File doesn't exist");
+                    rl.close();
+                    return
+                }
+
+                fs.readFile(currPath, 'utf8', (err, data) => {
+                    if (err) throw err;
+
+                    console.log(fileName.split(".")[1]);
+                    console.log(`Isi dari file ${fileName}`);
+                    console.log(data);
+                    rl.close()
+                    return
                 })
-            } else {
-                rl.question("Masukan Nama File : ", (fileName) => {
-                    // check file
-                    fs.readFile(__dirname + `/${fileName}`, 'utf8', (err, data) => {
-                        if (err) throw err;
-                        console.log(fileName.split(".")[1]);
-                        console.log(`Isi dari file ${fileName}`);
-                        console.log(data);
-                        rl.close()
-                        return
-                    })
-                })
-            }
-        })
+            })
+        }
+
+        askToEnterFolder();
+
     } catch (err) {
         console.error("Failed to get folders:", err);
         rl.close();
