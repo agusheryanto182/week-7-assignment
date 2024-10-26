@@ -27,29 +27,14 @@ app.makeFolder = () => {
     })
 }
 
-app.makeFile = () => {
-    // show the list of folders without file and hidden file
-    fs.readdir(__dirname, (err, files) => {
-        if (err) {
-            console.error("Error reading directory:", err);
-            rl.close();
-            return;
-        }
-
-        // filter the list of folders
-        const folders = files.filter(file => {
-            try {
-                const fileStat = fs.lstatSync(path.join(__dirname, file));
-                return fileStat.isDirectory() && !file.startsWith('.');
-            } catch (e) {
-                console.error("Error reading file stats:", e);
-                return false;
-            }
-        });
-        console.log(folders);
+app.makeFile = async () => {
+    try {
+        // show the list of folders without file and hidden file
+        const folders = await helper.showListOfFolders(__dirname);
+        console.log("list of folders : ", folders);
         console.log("")
 
-        rl.question("Masukan Nama Folder : ", (folderName) => {
+        rl.question("Masukan Nama Folder yang akan ditambahkan File: ", (folderName) => {
             rl.question("Masukan Nama File : ", (fileName) => {
                 rl.question("Masukan Extensi File : ", (ext) => {
 
@@ -80,28 +65,44 @@ app.makeFile = () => {
                 })
             })
         })
-    });
+    } catch (err) {
+        console.error("Failed to get folders:", err);
+        rl.close();
+    }
 }
 
-app.readFolder = () => {
-    let result = []
-    rl.question("Masukan Nama Folder : ", (folderName) => {
-        fs.readdir(__dirname + `/${folderName}`, (err, files) => {
-            if (err) throw err;
-            files.forEach(file => {
-                let stats = fs.statSync(__dirname + `/${folderName}/${file}`)
-                result.push({
-                    namaFile: file,
-                    extensi: file.split(".")[1],
-                    jenisFile: helper.checkFileType(file.split(".")[1]),
-                    tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
-                    ukuranFile: helper.convertFileSize(stats.size)
-                })
-            });
-            console.log(result);
+app.readFolder = async () => {
+    try {
+        // show the list of folders without file and hidden file
+        const folders = await helper.showListOfFolders(__dirname);
+        console.log("list of folders : ", folders);
+        console.log("")
+
+        let result = []
+        rl.question("Masukan Nama Folder yang akan dibaca: ", (folderName) => {
+            fs.readdir(__dirname + `/${folderName}`, (err, files) => {
+                if (err) throw err;
+                files.forEach(file => {
+                    let stats = fs.statSync(__dirname + `/${folderName}/${file}`)
+                    result.push({
+                        namaFile: file,
+                        extensi: file.split(".")[1],
+                        jenisFile: helper.checkFileType(file.split(".")[1]),
+                        tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
+                        ukuranFile: helper.convertFileSize(stats.size)
+                    })
+                });
+
+                // sort by date created
+                result.sort((a, b) => a.tanggalDibuat - b.tanggalDibuat)
+                console.log(result);
+            })
+            rl.close()
         })
-        rl.close()
-    })
+    } catch (err) {
+        console.error("Failed to get folders:", err);
+        rl.close();
+    }
 }
 
 app.readFile = () => { }
