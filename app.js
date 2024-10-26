@@ -29,47 +29,65 @@ app.makeFolder = () => {
 
 app.makeFile = async () => {
     try {
-        // show the list of folders without file and hidden file
         const folders = await helper.showListOfFoldersOrFile(__dirname, true);
-        console.log("list of folders : ", folders);
-        console.log("")
+        console.log("List of folders:", folders);
+        console.log("");
 
-        rl.question("Masukan Nama Folder yang akan ditambahkan File: ", (folderName) => {
-            rl.question("Masukan Nama File : ", (fileName) => {
-                rl.question("Masukan Extensi File : ", (ext) => {
+        let currDir = __dirname;
 
-                    // validate user input
-                    if (!folderName || !fileName || !ext) {
+        const askToEnterFolder = () => {
+            rl.question("Apakah ingin masuk ke folder? (y/n) ", (answer) => {
+                if (answer.toLowerCase() === "y") {
+                    rl.question("Masukan Nama Folder: ", (folderName) => {
+                        currDir = helper.updateCurrentPath(currDir, folderName);
+
+                        if (!fs.existsSync(currDir)) {
+                            console.log("Folder doesn't exist");
+                            rl.close();
+                            return;
+                        }
+
+                        console.log("Direktori saat ini:", currDir);
+                        askToEnterFolder();
+                    });
+                } else {
+                    askToCreateFile();
+                }
+            });
+        };
+
+        const askToCreateFile = () => {
+            rl.question("Masukan Nama File: ", (fileName) => {
+                rl.question("Masukan Extensi File: ", (ext) => {
+                    if (!fileName || !ext) {
                         console.log("Invalid input");
                         rl.close();
                         return;
                     }
 
-                    // validate folder
-                    const dirPath = path.join(__dirname, folderName);
-                    if (!fs.existsSync(dirPath)) {
-                        console.log("Folder doesn't exist");
+                    const filePath = path.join(currDir, `${fileName}.${ext}`);
+
+                    try {
+                        fs.writeFileSync(filePath, "");
+                        console.log(`Success: Created new file at ${filePath}`);
+                        rl.close();
+                        return;
+                    } catch (err) {
+                        console.error(`Error: ${err.message}`);
                         rl.close();
                         return;
                     }
+                });
+            });
+        };
 
-                    const filePath = path.join(dirPath, `${fileName}.${ext}`);
-                    try {
-                        fs.writeFileSync(filePath, "");
-                        console.log(`success created new file ${filePath}`)
-                    } catch (err) {
-                        console.log(`Error: ${err.message}`)
-                    } finally {
-                        rl.close()
-                    }
-                })
-            })
-        })
+        askToEnterFolder();
     } catch (err) {
         console.error("Failed to get folders:", err);
         rl.close();
+        return
     }
-}
+};
 
 app.readFolder = async () => {
     try {

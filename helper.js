@@ -53,5 +53,9 @@ helper.showListOfFoldersOrFile = (dirPath, isOnlyFolder) => {
     });
 };
 
+helper.updateCurrentPath = (currPath, newDir) => {
+    return path.join(currPath, newDir)
+}
+
 
 module.exports = helper
