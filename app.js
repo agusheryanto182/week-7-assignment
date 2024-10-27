@@ -242,9 +242,10 @@ app.readFile = async () => {
 
             rl.question("Masukan Nama File yang akan dibaca : ", (fileName) => {
                 const currPath = helper.updateCurrentPath(currDir, fileName)
+
                 // check file
-                if (!fs.existsSync(currPath)) {
-                    console.log("File doesn't exist");
+                if (!fs.existsSync(currPath) || helper.checkFileType(fileName.split(".").pop()) === 'gambar') {
+                    console.log("File doesn't exist or file is an image file");
                     rl.close();
                     return
                 }
@@ -252,8 +253,9 @@ app.readFile = async () => {
                 fs.readFile(currPath, 'utf8', (err, data) => {
                     if (err) throw err;
 
-                    console.log(fileName.split(".")[1]);
+                    console.log("")
                     console.log(`Isi dari file ${fileName}`);
+                    console.log("")
                     console.log(data);
                     rl.close()
                     return
