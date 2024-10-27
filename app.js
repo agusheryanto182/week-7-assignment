@@ -2,7 +2,6 @@ const fs = require("node:fs")
 const readline = require('node:readline');
 const helper = require("./helper");
 const path = require("node:path");
-const { validateHeaderName } = require("node:http");
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -179,6 +178,10 @@ app.readFolder = async () => {
                             namaFile: file,
                             extensi: file.split(".")[1],
                             jenisFile: helper.checkFileType(file.split(".")[1]),
+
+                            // untuk properti tanggalDibuat saya memakai ctime 
+                            // karena di sistem operasi debian ketika mengakses method birthime itu returnnya 0 
+                            // yang ketika diconvert itu hasilnya akan menjadi 1970
                             tanggalDibuat: new Date(stats.ctime).toISOString().split('T')[0],
                             ukuranFile: helper.convertFileSize(stats.size)
                         })
@@ -266,6 +269,50 @@ app.readFile = async () => {
         return
     }
 }
+
+app.extSorter = () => {
+    const currPath = path.join(__dirname, "unorganize_folder");
+
+    fs.readdir(currPath, (err, files) => {
+        if (err) {
+            console.error('Error reading directory:', err);
+            console.log('sorter failed');
+            rl.close();
+            return;
+        }
+
+        files.forEach(file => {
+            const fileType = helper.checkFileType(file.split(".").pop());
+            let targetDir;
+
+            if (fileType === "gambar") {
+                targetDir = path.join(__dirname, "gambar");
+            } else if (fileType === "text") {
+                targetDir = path.join(__dirname, "text");
+            }
+
+            if (targetDir) {
+                if (!fs.existsSync(targetDir)) {
+                    fs.mkdirSync(targetDir);
+                }
+
+                fs.rename(path.join(currPath, file), path.join(targetDir, file), (err) => {
+                    if (err) {
+                        console.log(err);
+                        console.log('sorter failed');
+                        rl.close();
+                        return;
+                    }
+                });
+            }
+        });
+
+        console.log('sorter success');
+
+        rl.close();
+        return
+    });
+};
 
 
 module.exports = app
